@@ -100,16 +100,108 @@ from the existing model.
 
 ### Data Points
 
-_Data Points_ are very similar to observations in the current model.
+_Data Points_ are analogous to observations in the current model. They are
+stored in the database with the following schema:
 
-[Consider merging metrics with observations]
+```ruby
+create_table :data_points do |t|
+  t.jsonb      :time
+  t.jsonb      :value
+  t.references :metadata
+end
+```
 
-[Consider storing all data in this table (including provider name and API
-identifier) so it exists independent of the rest of the system]
+In addition to their time and value data, a _Data Point_ has metadata associated
+with it which describes the meaning of the other two fields plus any other
+information common to a collection of data points (e.g. channel, metric, API
+identifiers, etc.)
+
+Channels and metrics from the current model can serve as metadata for _Data
+Points_. This part of the model remains to be discussed.
 
 ### Sources
 
+_Sources_ are implemented in code, and they use the metadata described in
+_Data Points_ to fetch and make sense out of the data stored in the database.
+
+A _Source_ may look like this:
+
+```ruby
+class TwitterFollowers < Source
+  def initialize(metadata)
+    # ...
+  end
+
+  def type
+  end
+
+  def each
+  end
+end
+
+# >> source = TwitterFollowers.new(handle: "@uphex")
+# => #<TwitterFollowers:0xABCDEF>
+# >> source.each.to_a
+# => [{time: "2015-03-03T10:20:30Z", value: 45}, ...]
+```
+
 ### Streams
+
+_Streams_ are "middleware". They wrap around _Sources_ and other _Streams_ so
+they also exist in code. Here is an example:
+
+```ruby
+class TwitterFollowersByDay
+  def initialize(input)
+  end
+
+  def type
+  end
+
+  def each
+  end
+end
+
+# >> stream = TwitterFollowersByDay.new(source)
+# => #<TwitterFollowersByDay:0xABCDEF>
+# >> stream.each.to_a
+# => [{day: "2015-03-03", value: 4}, {day: "2015-03-04", value: -2}
+```
+
+The idea behind _Streams_ is that the system knows about a predefined set of
+stream types and how to operate on them.
+
+Among the possible stream types and operations there are:
+
+ Operation    Input                      Output          Examples
+-----------  -------------------------  --------------- ------------------------
+delta        snapshot                    interval:(x)   Followers by day
+agreggate    discrete                    interval:(x)   Sales by day
+agreggate    interval:(x)                interval:(y)   Monthly page visits
+ratio        interval:(x),interval:(x)   interval:(x)   Revenue by followers
 
 ### Predictions
 
+_Predictions_ extend predictions from our current model by including the actual
+observed value with the computed prediction. This is needed because the data
+flowing through streams is transient. Effectively, we store the raw _Data
+Points_ and the fully processed _Predictions_.
+
+In addition to the observed values, _Predictions_ also store metadata describing
+the stream pipeline used to process raw data into predictable observations.
+
+This is the schema for _Predictions_:
+
+```ruby
+create_table :predictions do |t|
+  t.jsonb      :time
+  t.jsonb      :observed_value
+  t.jsonb      :predicted_value
+  t.jsonb      :lower_limit_value
+  t.jsonb      :upper_limit_value
+  t.references :metadata
+end
+```
+
+Channels and metrics from the current model can serve as metadata for
+_Predictions_. This part of the model remains to be discussed.
