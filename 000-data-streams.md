@@ -173,12 +173,12 @@ stream types and how to operate on them.
 
 Among the possible stream types and operations there are:
 
- Operation    Input                      Output          Examples
------------  -------------------------  --------------- ------------------------
-delta        snapshot                    interval:(x)   Followers by day
-agreggate    discrete                    interval:(x)   Sales by day
-agreggate    interval:(x)                interval:(y)   Monthly page visits
-ratio        interval:(x),interval:(x)   interval:(x)   Revenue by followers
+| Operation | Input                     | Output         |  Examples            |
+|:---------:|:-------------------------:|:--------------:|:--------------------:|
+|delta      | snapshot                  |  interval:(x)  | Followers by day     |
+|agreggate  | discrete                  |  interval:(x)  | Sales by day         |
+|agreggate  | interval:(x)              |  interval:(y)  | Monthly page visits  |
+|ratio      | interval:(x),interval:(x) |  interval:(x)  | Revenue by followers |
 
 ### Predictions
 
