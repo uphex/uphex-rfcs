@@ -205,3 +205,45 @@ end
 
 Channels and metrics from the current model can serve as metadata for
 _Predictions_. This part of the model remains to be discussed.
+
+## Challenges
+
+### Stream Discovery & Combination
+
+The number of available data streams changes as the user adds new data sources.
+
+A UI for combining data sources and streams is displayed each time a user adds a
+new source. The same UI is used to create streams when not adding a data source.
+The UI takes a list of all possible combinations and lets users to select/filter
+streams. (After adding a data source, the new inputs are automatically selected
+for convenience.)
+
+A Stream discover class is responsible for collecting input data sources &
+streams and listing all possible stream combinations.
+
+Each new stream known to the system is saved to the database. When a user "adds"
+a stream, a new association between a user and a stream is created.
+
+Similarly, each new data source is saved to the database and associated with a
+user when added.
+
+### Stream-Source Dependency
+
+Consider whether streams should depende on their bottom level data sources.
+This would ensure a stream can actually be fetched without computing the stream
+pipeline. An array column with the data source ids is used.
+
+### Model Migration
+
+Channels and metrics will essentially be merged into data sources. Metrics will
+be moved to code under lib/provider. Data sources become associated with a user
+and an access token.
+
+Table user_channels become user_data_streams.
+
+Updating channels is no longer needed. Each time the stream selection UI is
+rendered, a CombineStreams job is dispatched to add all new streams known to the
+system.
+
+Existing observations will be migrated to input data points and converted to
+observations once streams are in place.
