@@ -18,7 +18,7 @@ saving observations, we can't reuse it to compose multidimensional metrics (e.g.
 new Twitter followers by day, Facebook page visits by day/week/month).
 
 Treating fetched data and saved observations as distinct entities addresses the
-shortcomings of our current model. This new model can be achieved by introcuding
+shortcomings of our current model. This new model can be achieved by introducing
 data streams and sources.
 
 ## Design
@@ -41,14 +41,14 @@ data streams and sources.
   the system. _Data Points_ emitted from a _Source_ cav have different semantics
   (e.g interval aggregates, snapshots, discrete);
 
-- **Data Points** represent discrete values persisted to the database with
+- **Data Points** represent discrete input points persisted to the database with
   minimal processing;
 
 - **Streams** represent series of _Data Points_ originated at either a _Source_
   or another _Stream_. From this perspective, a _Source_ is indistinguishable
   from a _Stream_;
 
-- **Predictions** represent values computed from a time series extracted from a
+- **Observations** represent values computed from a time series extracted from a
   _Stream_. They are also persisted to the database.
 
 Some of the ideas on the new model exist on the current model but receive a new
@@ -76,7 +76,7 @@ The structure of the proposed model looks like this:
               |
               V
     +-------------------+
-    |    PREDICTIONS    |
+    |    OBSERVATIONS   |
     +-------------------+
 
 
@@ -92,9 +92,6 @@ table.
 
 _Streams_ are the most complex entities in this model. They are initialized with
 a set of _Streams_ and/or _Sources_ and the relationships between them.
-
-_Predictions_ are equivalent to a combination of observations and predictions
-from the existing model.
 
 ## Implementation
 
@@ -180,32 +177,6 @@ Among the possible stream types and operations there are:
 |agreggate  | interval:(x)              |  interval:(y)  | Monthly page visits  |
 |ratio      | interval:(x),interval:(x) |  interval:(x)  | Revenue by followers |
 
-### Predictions
-
-_Predictions_ extend predictions from our current model by including the actual
-observed value with the computed prediction. This is needed because the data
-flowing through streams is transient. Effectively, we store the raw _Data
-Points_ and the fully processed _Predictions_.
-
-In addition to the observed values, _Predictions_ also store metadata describing
-the stream pipeline used to process raw data into predictable observations.
-
-This is the schema for _Predictions_:
-
-```ruby
-create_table :predictions do |t|
-  t.jsonb      :time
-  t.jsonb      :observed_value
-  t.jsonb      :predicted_value
-  t.jsonb      :lower_limit_value
-  t.jsonb      :upper_limit_value
-  t.references :metadata
-end
-```
-
-Channels and metrics from the current model can serve as metadata for
-_Predictions_. This part of the model remains to be discussed.
-
 ## Challenges
 
 ### Stream Discovery & Combination
@@ -225,19 +196,19 @@ Each new stream known to the system is saved to the database. When a user "adds"
 a stream, a new association between a user and a stream is created.
 
 Similarly, each new data source is saved to the database and associated with a
-user when added.
+user when "added".
 
 ### Stream-Source Dependency
 
 Consider whether streams should depende on their bottom level data sources.
 This would ensure a stream can actually be fetched without computing the stream
-pipeline. An array column with the data source ids is used.
+pipeline. An array column with the data source ids can be used used.
 
 ### Model Migration
 
-Channels and metrics will essentially be merged into data sources. Metrics will
-be moved to code under lib/provider. Data sources become associated with a user
-and an access token.
+Channels and metrics are essentially merged into data sources. Metrics are
+moved to code under lib/provider. Data sources become associated with a user and
+an access token.
 
 Table user_channels become user_data_streams.
 
@@ -245,5 +216,5 @@ Updating channels is no longer needed. Each time the stream selection UI is
 rendered, a CombineStreams job is dispatched to add all new streams known to the
 system.
 
-Existing observations will be migrated to input data points and converted to
+Existing observations are migrate to input data points and converted to
 observations once streams are in place.
